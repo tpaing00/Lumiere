@@ -96,7 +96,8 @@ const addProduct = async (req, res) => {
       isLowStockAlert: isLowStockAlert,
       lowStockThreshold: parseInt(lowStockThreshold),
       isExpirationReminder: isExpirationReminder,
-      expirationReminderTime: parseInt(expirationReminderTime)
+      expirationReminderTime: parseInt(expirationReminderTime),
+      read: false
     };
 
     const notification = new Notification(notificationData);

@@ -8,7 +8,8 @@ const NotificationSchema = new Schema({
   isLowStockAlert: { type: Boolean },
   lowStockThreshold: { type: Number, default: 0 },
   isExpirationReminder: { type: Boolean, required: true },
-  expirationReminderTime: { type: Number, required: true, default: 0 }
+  expirationReminderTime: { type: Number, required: true, default: 0 },
+  read: {type: Boolean, default: false}
 });
 
 const Notification = mongoose.model('Notification', NotificationSchema);
