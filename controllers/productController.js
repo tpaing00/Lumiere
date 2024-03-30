@@ -8,8 +8,109 @@ const { log } = require('console');
 
 const bucket = firebaseAdmin.storage().bucket();
 
-const addProduct = async (req, res) => {
+// const addProduct = async (req, res) => {
 
+//   try {
+//     // Extract form data from JSON request body
+//     const {
+//       addToInventory,
+//       category,
+//       productName,
+//       brandName,
+//       stockQuantity,
+//       barcodeNumber,
+//       unitPrice,
+//       expiryDate,
+//       periodAfterOpening,
+//       isLowStockAlert,
+//       lowStockThreshold,
+//       isExpirationReminder,
+//       expirationReminderTime,
+//       message,
+//       location
+//     } = req.body;
+//     const userId = req.locals.userId;
+
+
+//     const photoFiles = req.files;
+//     if (!photoFiles || photoFiles.length === 0) {
+//       return res.status(400).json({ error: 'No image files uploaded' });
+//     }
+
+
+//     const photoUrls = [];
+
+    
+//     for (const photoFile of photoFiles) {
+//       // Upload the file buffer to Firebase Storage
+//       const file = bucket.file(`productPhotos/${photoFile.originalname}`);
+//       const uploadResult = await file.save(photoFile.buffer, {
+//         contentType: photoFile.mimetype
+//       });
+
+
+//       // Get the download URL of the uploaded file
+//   const [downloadUrl] = await file.getSignedUrl({
+//     action: 'read',
+//     expires: '03-09-2025' // Set an expiration date for the URL if needed
+//   });
+
+//   if (downloadUrl) {
+//     photoUrls.push(downloadUrl);
+//   } else {
+//     console.error('Error getting download URL');
+//   }
+//     }
+
+
+//     // Create Inventory object
+//     const inventoryData = {
+//       userId,
+//       barcodeNumber,
+//       addToInventory: addToInventory, // Convert string to boolean
+//       expiryDate: new Date(expiryDate), // Convert string to date
+//       stockQuantity: parseInt(stockQuantity),// Convert string to integer
+//       totalValue: parseFloat(unitPrice * stockQuantity) // Convert string to number 
+//     };
+//     const inventory = new Inventory(inventoryData);
+//     const saveToInventory = await inventory.save();
+
+//     // Create Product object
+//     const productData = {
+//       barcodeNumber: barcodeNumber,
+//       productName: productName,
+//       brandName,
+//       unitPrice: parseFloat(unitPrice), // Convert string to number
+//       category: category,
+//       photo:photoUrls,
+//       periodAfterOpening: parseInt(periodAfterOpening), // Convert string to integer
+//       message,
+//       location
+//     };
+//     const product = new Product(productData);
+//     await product.save();
+
+//     // Create Notification object
+//     const notificationData = {
+//       inventoryId: saveToInventory._id,
+//       isLowStockAlert: isLowStockAlert,
+//       lowStockThreshold: parseInt(lowStockThreshold),
+//       isExpirationReminder: isExpirationReminder,
+//       expirationReminderTime: parseInt(expirationReminderTime),
+//       read: false
+//     };
+
+//     const notification = new Notification(notificationData);
+//     await notification.save();
+
+//     res.status(201).json({ product, inventory, notification });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Server Error' });
+//   }
+// };
+
+const addProduct = async (req, res) => {
   try {
     // Extract form data from JSON request body
     const {
@@ -31,41 +132,62 @@ const addProduct = async (req, res) => {
     } = req.body;
     const userId = req.locals.userId;
 
+    // Check if the product already has a photo
+    const existingProduct = await Product.findOne({ barcodeNumber });
+    const hasExistingPhoto = existingProduct && existingProduct.photo && existingProduct.photo.length > 0;
 
+    // Validate image only if no existing photo
     const photoFiles = req.files;
-    if (!photoFiles || photoFiles.length === 0) {
+    if (!hasExistingPhoto && (!photoFiles || photoFiles.length === 0)) {
       return res.status(400).json({ error: 'No image files uploaded' });
     }
 
-
     const photoUrls = [];
 
-    
-    for (const photoFile of photoFiles) {
-      // Upload the file buffer to Firebase Storage
-      const file = bucket.file(`productPhotos/${photoFile.originalname}`);
-      const uploadResult = await file.save(photoFile.buffer, {
-        contentType: photoFile.mimetype
-      });
+    // for (const photoFile of photoFiles) {
+    //   // Upload the file buffer to Firebase Storage
+    //   const file = bucket.file(`productPhotos/${photoFile.originalname}`);
+    //   const uploadResult = await file.save(photoFile.buffer, {
+    //     contentType: photoFile.mimetype
+    //   });
 
+    //   // Get the download URL of the uploaded file
+    //   const [downloadUrl] = await file.getSignedUrl({
+    //     action: 'read',
+    //     expires: '03-09-2025' // Set an expiration date for the URL if needed
+    //   });
 
-      // Get the download URL of the uploaded file
-  const [downloadUrl] = await file.getSignedUrl({
-    action: 'read',
-    expires: '03-09-2025' // Set an expiration date for the URL if needed
-  });
+    //   if (downloadUrl) {
+    //     photoUrls.push(downloadUrl);
+    //   } else {
+    //     console.error('Error getting download URL');
+    //   }
+    // }
 
-  if (downloadUrl) {
-    photoUrls.push(downloadUrl);
-  } else {
-    console.error('Error getting download URL');
-  }
+    if (!hasExistingPhoto) {
+      for (const photoFile of photoFiles) {
+        // Upload the file buffer to Firebase Storage
+        const file = bucket.file(`productPhotos/${photoFile.originalname}`);
+        const uploadResult = await file.save(photoFile.buffer, {
+          contentType: photoFile.mimetype
+        });
+
+        // Get the download URL of the uploaded file
+        const [downloadUrl] = await file.getSignedUrl({
+          action: 'read',
+          expires: '03-09-2025' // Set an expiration date for the URL if needed
+        });
+
+        if (downloadUrl) {
+          photoUrls.push(downloadUrl);
+        } else {
+          console.error('Error getting download URL');
+        }
+      }
     }
-
-
     // Create Inventory object
     const inventoryData = {
-      userId,
+      // userId,
       barcodeNumber,
       addToInventory: addToInventory, // Convert string to boolean
       expiryDate: new Date(expiryDate), // Convert string to date
@@ -82,7 +204,7 @@ const addProduct = async (req, res) => {
       brandName,
       unitPrice: parseFloat(unitPrice), // Convert string to number
       category: category,
-      photo:photoUrls,
+      photo: hasExistingPhoto ? existingProduct.photo : photoUrls,
       periodAfterOpening: parseInt(periodAfterOpening), // Convert string to integer
       message,
       location
@@ -109,6 +231,7 @@ const addProduct = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
 
 const getProductList = async(req, res) => {
   const id = req.params.id;
