@@ -15,7 +15,7 @@ const productController = require('../controllers/productController');
 // Route for adding a product
 router.get('/search', productController.searchProductList);
 router.delete('/delete', productController.deleteProduct);
-router.post('/add-product', upload.array('images', 10), productController.addProduct);
+router.post('/add-product', upload.array('photo', 10), productController.addProduct);
 router.get('/products', productController.getProductList);
 router.get('/products/:id', productController.getProductList);
 
