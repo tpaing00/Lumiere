@@ -168,4 +168,34 @@ const getActiveNotificationList = async(req, res) => {
       }
 }
 
-module.exports = { getNotification, getActiveNotificationList }
+const markNotificationAsRead = async (req, res) => {
+    const notificationId = req.params.notificationId;
+    console.log("notification id is ", notificationId);
+
+    try {
+        // Find the notification by ID
+        let notification = await Notification.findById(notificationId);
+
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        // Check if the notification already has a 'read' field
+        if (notification.read === undefined || notification.read === false) {
+            console.log("marking notification as true");
+            // If 'read' field doesn't exist or is false, set it to true
+            notification.read = true;
+        }
+
+        // Save the updated notification
+        notification = await notification.save();
+
+        res.status(200).json({ message: 'Notification marked as read', notification });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+
+module.exports = { getNotification, getActiveNotificationList, markNotificationAsRead  }
