@@ -209,6 +209,7 @@ const addProduct = async (req, res) => {
 
     // Create Inventory object
     const inventoryData = {
+      userId,
       barcodeNumber,
       addToInventory: addToInventory, // Convert string to boolean
       expiryDate: new Date(expiryDate), // Convert string to date
