@@ -132,70 +132,65 @@ const addProduct = async (req, res) => {
     } = req.body;
     const userId = req.locals.userId;
 
-    // Check if the product already has a photo
-    const existingProduct = await Product.findOne({ barcodeNumber });
-    const hasExistingPhoto = existingProduct && existingProduct.photo && existingProduct.photo.length > 0;
+    // Check if the product already exists
+    let existingProduct = await Product.findOne({ barcodeNumber });
 
-    // Validate image only if no existing photo
+    if (existingProduct) {
+      console.log("product exists");
+      // Create new row in Inventory
+      const inventoryData = {
+        userId,
+        barcodeNumber,
+        addToInventory: addToInventory, 
+        expiryDate: new Date(expiryDate),
+        stockQuantity: parseInt(stockQuantity),
+        totalValue: parseFloat(unitPrice * stockQuantity) 
+      };
+      const inventory = new Inventory(inventoryData);
+      await inventory.save();
+
+      // Create new row in Notification
+      const notificationData = {
+        inventoryId: inventory._id,
+        isLowStockAlert: isLowStockAlert,
+        lowStockThreshold: parseInt(lowStockThreshold),
+        isExpirationReminder: isExpirationReminder,
+        expirationReminderTime: parseInt(expirationReminderTime),
+        read: false
+      };
+      const notification = new Notification(notificationData);
+      await notification.save();
+
+      return res.status(201).json({ inventory, notification });
+    }else {
+    // If product is new, proceed to create new product, inventory, and notification
     const photoFiles = req.files;
-    if (!hasExistingPhoto && (!photoFiles || photoFiles.length === 0)) {
+    if (!photoFiles || photoFiles.length === 0) {
       return res.status(400).json({ error: 'No image files uploaded' });
     }
 
+
     const photoUrls = [];
 
-    // for (const photoFile of photoFiles) {
-    //   // Upload the file buffer to Firebase Storage
-    //   const file = bucket.file(`productPhotos/${photoFile.originalname}`);
-    //   const uploadResult = await file.save(photoFile.buffer, {
-    //     contentType: photoFile.mimetype
-    //   });
+    for (const photoFile of photoFiles) {
+      // Upload the file buffer to Firebase Storage
+      const file = bucket.file(`productPhotos/${photoFile.originalname}`);
+      const uploadResult = await file.save(photoFile.buffer, {
+        contentType: photoFile.mimetype
+      });
 
-    //   // Get the download URL of the uploaded file
-    //   const [downloadUrl] = await file.getSignedUrl({
-    //     action: 'read',
-    //     expires: '03-09-2025' // Set an expiration date for the URL if needed
-    //   });
+      // Get the download URL of the uploaded file
+      const [downloadUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: '03-09-2025' // Set an expiration date for the URL if needed
+      });
 
-    //   if (downloadUrl) {
-    //     photoUrls.push(downloadUrl);
-    //   } else {
-    //     console.error('Error getting download URL');
-    //   }
-    // }
-
-    if (!hasExistingPhoto) {
-      for (const photoFile of photoFiles) {
-        // Upload the file buffer to Firebase Storage
-        const file = bucket.file(`productPhotos/${photoFile.originalname}`);
-        const uploadResult = await file.save(photoFile.buffer, {
-          contentType: photoFile.mimetype
-        });
-
-        // Get the download URL of the uploaded file
-        const [downloadUrl] = await file.getSignedUrl({
-          action: 'read',
-          expires: '03-09-2025' // Set an expiration date for the URL if needed
-        });
-
-        if (downloadUrl) {
-          photoUrls.push(downloadUrl);
-        } else {
-          console.error('Error getting download URL');
-        }
+      if (downloadUrl) {
+        photoUrls.push(downloadUrl);
+      } else {
+        console.error('Error getting download URL');
       }
     }
-    // Create Inventory object
-    const inventoryData = {
-      // userId,
-      barcodeNumber,
-      addToInventory: addToInventory, // Convert string to boolean
-      expiryDate: new Date(expiryDate), // Convert string to date
-      stockQuantity: parseInt(stockQuantity),// Convert string to integer
-      totalValue: parseFloat(unitPrice * stockQuantity) // Convert string to number 
-    };
-    const inventory = new Inventory(inventoryData);
-    const saveToInventory = await inventory.save();
 
     // Create Product object
     const productData = {
@@ -204,13 +199,24 @@ const addProduct = async (req, res) => {
       brandName,
       unitPrice: parseFloat(unitPrice), // Convert string to number
       category: category,
-      photo: hasExistingPhoto ? existingProduct.photo : photoUrls,
+      photo: photoUrls,
       periodAfterOpening: parseInt(periodAfterOpening), // Convert string to integer
       message,
       location
     };
     const product = new Product(productData);
     await product.save();
+
+    // Create Inventory object
+    const inventoryData = {
+      barcodeNumber,
+      addToInventory: addToInventory, // Convert string to boolean
+      expiryDate: new Date(expiryDate), // Convert string to date
+      stockQuantity: parseInt(stockQuantity),// Convert string to integer
+      totalValue: parseFloat(unitPrice * stockQuantity) // Convert string to number 
+    };
+    const inventory = new Inventory(inventoryData);
+    const saveToInventory = await inventory.save();
 
     // Create Notification object
     const notificationData = {
@@ -225,12 +231,15 @@ const addProduct = async (req, res) => {
     const notification = new Notification(notificationData);
     await notification.save();
 
-    res.status(201).json({ product, inventory, notification });
+    res.status(201).json({ product, inventory, notification });}
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+
+
 
 
 const getProductList = async(req, res) => {
