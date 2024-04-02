@@ -7,5 +7,6 @@ router.get("/notification", notificationCtrl.getNotification);
 router.get("/notification/:id", notificationCtrl.getNotification);
 router.get("/activeNotificationList", notificationCtrl.getActiveNotificationList);
 router.put('/notification/:notificationId/mark-read', notificationCtrl.markNotificationAsRead); 
+router.get('/notifications/unreadCount', notificationCtrl.getUnreadNotificationCount);
 
 module.exports = router;
