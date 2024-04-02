@@ -197,8 +197,10 @@ const markNotificationAsRead = async (req, res) => {
 
 
 const getUnreadNotificationCount = async (req, res) => {
+    console.log("request for unread notification count");
     try {
         const unreadCount = await Notification.countDocuments({ read: false });
+        console.log(" unread notification count is ", unreadCount);
         res.status(200).json({ unreadCount });
     } catch (error) {
         console.error(error);
