@@ -170,7 +170,6 @@ const getActiveNotificationList = async(req, res) => {
 
 const markNotificationAsRead = async (req, res) => {
     const notificationId = req.params.notificationId;
-    console.log("notification id is ", notificationId);
 
     try {
         // Find the notification by ID
@@ -182,7 +181,6 @@ const markNotificationAsRead = async (req, res) => {
 
         // Check if the notification already has a 'read' field
         if (notification.read === undefined || notification.read === false) {
-            console.log("marking notification as true");
             // If 'read' field doesn't exist or is false, set it to true
             notification.read = true;
         }

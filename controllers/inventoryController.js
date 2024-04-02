@@ -63,6 +63,31 @@ const getTotalInventory = (req, res) => {
     });
 };
 
+const getTotalInventoryByType = (req, res) => {
+  Inventory.aggregate([
+    {
+      $group: {
+        _id: { addToInventory: "$addToInventory", _id: null }, // Group by both addToInventory and _id
+        totalInventory: { $sum: "$stockQuantity" },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        addToInventory: "$_id.addToInventory",
+        totalInventory: 1,
+      },
+    },
+  ])
+    .exec()
+    .then((result) => {
+      res.status(200).json(result);
+    })
+    .catch((error) => {
+      res.status(500).json(error);
+    });
+};
+
 const getTotalInventoryValue = (req, res) => {
   Inventory.aggregate([
     {
@@ -247,6 +272,7 @@ module.exports = {
   getInventory,
   saveInventory,
   getTotalInventory,
+  getTotalInventoryByType,
   getTotalInventoryValue,
   getCountExpiredInventory,
   getCountNearlyExpiredInventory,
