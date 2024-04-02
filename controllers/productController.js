@@ -136,7 +136,6 @@ const addProduct = async (req, res) => {
     let existingProduct = await Product.findOne({ barcodeNumber });
 
     if (existingProduct) {
-      console.log("product exists");
       // Create new row in Inventory
       const inventoryData = {
         userId,

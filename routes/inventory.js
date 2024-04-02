@@ -7,6 +7,7 @@ router.get("/inventory", inventoryCtrl.getInventory);
 router.get("/inventory/:id", inventoryCtrl.getInventory);
 router.post("/inventory", inventoryCtrl.saveInventory);
 router.get("/totalinventory", inventoryCtrl.getTotalInventory);
+router.get("/totalinventorybytype", inventoryCtrl.getTotalInventoryByType);
 router.get("/totalinventoryvalue", inventoryCtrl.getTotalInventoryValue);
 router.get("/getexpiredinventory", inventoryCtrl.getCountExpiredInventory);
 router.get("/getnearlyexpiredinventory", inventoryCtrl.getCountNearlyExpiredInventory);
