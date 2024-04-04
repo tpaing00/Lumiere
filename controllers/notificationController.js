@@ -199,13 +199,139 @@ const markNotificationAsRead = async (req, res) => {
 const getUnreadNotificationCount = async (req, res) => {
     console.log("request for unread notification count");
     try {
-        const unreadCount = await Notification.countDocuments({ read: false });
-        console.log(" unread notification count is ", unreadCount);
+        // Fetch active notifications
+        let lowStockResults = await Inventory.aggregate([
+            {
+                $lookup: {
+                  from: "notifications",
+                  localField: "_id",
+                  foreignField: "inventoryId",
+                  as: "notificationResults"
+                }
+            },
+            {
+                $match: {
+                    $and: [
+                        { "notificationResults.isLowStockAlert": true },
+                        {
+                            $expr: {
+                                $gt: [
+                                    { $arrayElemAt: ["$notificationResults.lowStockThreshold", 0] },
+                                     "$stockQuantity"
+                                ]
+                            }
+                        }
+                    ]  
+                }
+            }
+        ]);
+
+        let expiryResults = await Inventory.aggregate([
+            {
+                $lookup: {
+                  from: "notifications",
+                  localField: "_id",
+                  foreignField: "inventoryId",
+                  as: "notificationResults"
+                }
+            },
+            {
+                $match: {
+                    $and: [
+                        { "notificationResults.isExpirationReminder": true },
+                        {
+                            $expr: {
+                                $and: [
+                                    {
+                                        $gte: [
+                                            new Date(),
+                                            {
+                                                $dateSubtract: {
+                                                    startDate: "$expiryDate",
+                                                    unit: "day",
+                                                    amount: {
+                                                        $convert: {
+                                                            input: { $arrayElemAt: ["$notificationResults.expirationReminderTime", 0] },
+                                                            to: "int"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    { $lte: [new Date(), "$expiryDate"] }
+                                ]
+                            }
+                        }
+                    ]
+                }
+
+            }
+        ]);
+
+        let internalUseExpiryResults = await InternalUse.aggregate([
+            {
+                $lookup: {
+                  from: "notifications",
+                  localField: "_id",
+                  foreignField: "stockKeepingUnit",
+                  as: "notificationResults"
+                }
+            },
+            {
+                $match: {
+                    $and: [
+                        { "notificationResults.isExpirationReminder": true },
+                        {
+                            $expr: {
+                                $and: [
+                                    {
+                                        $gte: [
+                                            new Date(),
+                                            {
+                                                $dateSubtract: {
+                                                    startDate: "$useByDate",
+                                                    unit: "day",
+                                                    amount: {
+                                                        $convert: {
+                                                            input: { $arrayElemAt: ["$notificationResults.expirationReminderTime", 0] },
+                                                            to: "int"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    { $lte: [new Date(), "$useByDate"] }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+
+        let activeNotifications = [...lowStockResults, ...expiryResults, ...internalUseExpiryResults];
+
+        let unreadCount = 0;
+        activeNotifications.forEach(notification => {
+            if (
+                notification &&
+                notification.notificationResults &&
+                notification.notificationResults.length > 0 && 
+                !notification.notificationResults[0].read
+            ) {
+                unreadCount++;
+            }
+        });
+
         res.status(200).json({ unreadCount });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Encountered Server Error' });
     }
 };
+
+
 
 module.exports = { getNotification, getActiveNotificationList, markNotificationAsRead, getUnreadNotificationCount  }
